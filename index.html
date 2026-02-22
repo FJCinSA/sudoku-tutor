@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Sudoku Tutor</title>
+
+  <!--
+    SUDOKU TUTOR
+    ════════════════════════════════════════════════
+    A teaching-first Sudoku app that explains WHY
+    a number goes where it does, not just what.
+
+    FILE STRUCTURE:
+    ┌─────────────┬──────────────────────────────┐
+    │ index.html  │ This file. HTML skeleton.    │
+    │ style.css   │ All visual styling.          │
+    │ engine.js   │ Puzzle generation & solving. │
+    │ hints.js    │ Hint detection & text.       │
+    │ render.js   │ Draws everything on screen.  │
+    │ game.js     │ State, logic, controls.      │
+    └─────────────┴──────────────────────────────┘
+
+    LOAD ORDER: engine → hints → render → game
+    Each module depends only on the ones before it.
+    ════════════════════════════════════════════════
+  -->
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- App title and tagline -->
+  <h1>Sudoku Tutor</h1>
+  <div class="sub">Learn · Solve · Master</div>
+
+  <!-- Difficulty buttons: beginner / easy / medium / hard / expert -->
+  <div class="dbar" id="dB"></div>
+
+  <!-- Stats bar: mistakes | score | streak | timer -->
+  <div class="info">
+    <span id="xM">❌ 0</span>   <!-- mistake count -->
+    <span id="xS">⚡ 0</span>   <!-- score -->
+    <span id="xK"></span>        <!-- streak (shows at 3+) -->
+    <span id="xT">00:00</span>  <!-- elapsed time -->
+  </div>
+
+  <!-- Progress bar: fills as you solve -->
+  <div class="pbar">
+    <div class="pf" id="pF" style="width:0%"></div>
+  </div>
+
+  <!-- The 9×9 board: 81 cells built by render.js -->
+  <div class="board" id="brd"></div>
+
+  <!-- Action buttons: Pause | Notes | Erase | Undo | Auto | Check -->
+  <div class="acts" id="act"></div>
+
+  <!-- Number pad: buttons 1-9 with placement counts -->
+  <div class="np" id="nup"></div>
+
+  <!-- Teaching panel: tabbed area below the board -->
+  <!-- Tabs: 💡 Tutor | 📖 Lessons | 🧩 Techniques -->
+  <div class="pn">
+    <div class="tbs" id="tbs"></div>
+    <div class="tbd" id="tbd"></div>
+  </div>
+
+  <!-- Win modal: overlay shown when puzzle is complete -->
+  <div class="mo" id="wM">
+    <div class="mi2">
+      <div style="font-size:2rem;margin-bottom:6px">🏆</div>
+      <h2>Puzzle Complete!</h2>
+      <p id="wP"></p>
+      <div class="mbs">
+        <button class="bp" onclick="newGame(Game.difficulty)">Play Again</button>
+        <button class="bs" onclick="nextLevel()">Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript modules (order matters) -->
+  <script src="engine.js"></script>  <!-- no dependencies -->
+  <script src="hints.js"></script>   <!-- needs Engine -->
+  <script src="render.js"></script>  <!-- needs Game state -->
+  <script src="game.js"></script>    <!-- needs all three above -->
+
+</body>
+</html>
