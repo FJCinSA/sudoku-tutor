@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Sudoku Tutor</title>
+
+  <!--
+    ══════════════════════════════════════════════════════
+    SUDOKU TUTOR  (v2 — improved)
+    ══════════════════════════════════════════════════════
+    A teaching-first Sudoku app that explains WHY a number
+    goes where it does, not just what the answer is.
+
+    FILE STRUCTURE
+    ──────────────
+    index.html  ← this file — HTML skeleton & page structure
+    style.css   ← all visual styling, colours, animations
+    engine.js   ← puzzle generation & solving logic (pure JS)
+    hints.js    ← technique detection & explanations
+    render.js   ← reads Game state, writes to the DOM
+    game.js     ← state object, all user actions, keyboard
+
+    LOAD ORDER: engine → hints → render → game
+    Each file depends only on those before it.
+
+    KEY FEATURES
+    ────────────
+    • 5 difficulty levels (Beginner → Expert)
+    • Tutor tab: real-time hints with step-by-step explanations
+    • Lessons tab: structured learning path
+    • Techniques tab: reference library (Naked Single → X-Wing)
+    • Pencil notes with auto-fill and auto-clear
+    • Score + streak bonuses + animated feedback
+    • Undo, pause, check mode, sound
+    • Keyboard: 1-9 place, Backspace erase, N notes, P pause,
+                Ctrl+Z undo, Arrow keys navigate
+    ══════════════════════════════════════════════════════
+  -->
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ── Loading overlay ─────────────────────────────────
+       Shown for ~200 ms while the first puzzle generates.
+       Prevents the UI from looking frozen on load.
+  ─────────────────────────────────────────────────────── -->
+  <div id="loadOverlay" class="show" aria-live="polite">
+    <span>Generating puzzle…</span>
+  </div>
+
+  <!-- ── App header ──────────────────────────────────────
+       Title + tagline.  Georgia serif to match the board.
+  ─────────────────────────────────────────────────────── -->
+  <h1>Sudoku Tutor</h1>
+  <div class="sub" title="Learn solving techniques while you play">Learn · Solve · Master</div>
+
+  <!-- ── Difficulty selector ─────────────────────────────
+       Five buttons: Beginner / Easy / Medium / Hard / Expert.
+       Clicking any button starts a fresh puzzle.
+       Built by Render.difficulty() on every Render.all().
+  ─────────────────────────────────────────────────────── -->
+  <div class="dbar" id="dB" role="group" aria-label="Difficulty selector"></div>
+
+  <!-- ── Stats bar ───────────────────────────────────────
+       ❌ mistakes  ⚡ score  🔥 streak  ⏱ time elapsed
+       Updated every second; each span has a tooltip.
+  ─────────────────────────────────────────────────────── -->
+  <div class="info" role="status" aria-label="Game stats">
+    <span id="xM" title="Number of mistakes (each costs 15 points)">❌ 0</span>
+    <span id="xS" title="Score (+10 per correct digit, +25 for 5+ streak)">⚡ 0</span>
+    <span id="xK" title="Current correct-placement streak"></span>
+    <span id="xT" title="Time elapsed">00:00</span>
+  </div>
+
+  <!-- ── Progress bar ────────────────────────────────────
+       Gold fill advances left-to-right as cells are solved.
+       Width is set via JS; glows briefly after each correct cell.
+  ─────────────────────────────────────────────────────── -->
+  <div class="pbar" role="progressbar" aria-label="Puzzle completion"
+       aria-valuemin="0" aria-valuemax="100">
+    <div class="pf" id="pF" style="width:0%"
+         title="Puzzle completion percentage"></div>
+  </div>
+
+  <!-- ── 9×9 board ───────────────────────────────────────
+       81 cells built dynamically by Render.board().
+       data-r / data-c attributes identify each cell's position.
+       Clicking a cell calls selectCell(r, c).
+  ─────────────────────────────────────────────────────── -->
+  <div class="board" id="brd" role="grid" aria-label="Sudoku board"></div>
+
+  <!-- ── Action buttons ──────────────────────────────────
+       Built by Render.actions().  Buttons:
+         ✏ Notes   — toggle pencil-note mode (blue border)
+         ✕ Erase   — clear selected cell
+         ↩ Undo    — reverse last action
+         📝 Auto   — fill all candidates as notes
+         ✓ Check   — toggle instant error feedback
+         🔊/🔇    — toggle sound
+         ⏸/▶     — pause / resume
+       Each button has a tooltip (title attribute).
+  ─────────────────────────────────────────────────────── -->
+  <div class="acts" id="act" role="toolbar" aria-label="Game actions"></div>
+
+  <!-- ── Number pad ──────────────────────────────────────
+       9 buttons (1-9), built by Render.numpad().
+       Each shows the digit and a small "placed/9" counter.
+       Button is greyed out when all 9 of that digit are placed.
+  ─────────────────────────────────────────────────────── -->
+  <div class="np" id="nup" role="toolbar" aria-label="Number pad"></div>
+
+  <!-- ── Teaching panel ──────────────────────────────────
+       Tabbed area below the number pad.
+
+       💡 Tutor tab
+          Context-sensitive messages appear here whenever you:
+          • tap a cell (shows candidate count or hint)
+          • make a correct or wrong placement
+          • use Show Move (shows technique + explanation)
+          Buttons: "Show Move" (highlight next move) and
+                   "Place N"   (apply hint automatically)
+
+       📖 Lessons tab
+          Structured learning path — five expandable cards:
+          The Rules → Scanning → Naked Singles →
+          Hidden Singles → Notes Mastery
+
+       🧩 Techniques tab
+          Reference accordion for five solving strategies:
+          Naked Single → Hidden Single → Naked Pair →
+          Pointing Pair → X-Wing
+          Each entry has: description, how-to, example.
+  ─────────────────────────────────────────────────────── -->
+  <div class="pn" role="complementary" aria-label="Teaching panel">
+    <div class="tbs" id="tbs" role="tablist"></div>
+    <div class="tbd" id="tbd" role="tabpanel"></div>
+  </div>
+
+  <!-- ── Win modal ───────────────────────────────────────
+       Full-screen overlay, shown when all 81 cells are correct.
+       Displays: time, score, mistakes.
+       Buttons: "Play Again" (same difficulty) / "Next →" (harder).
+  ─────────────────────────────────────────────────────── -->
+  <div class="mo" id="wM" role="dialog" aria-modal="true" aria-label="Puzzle complete">
+    <div class="mi2">
+      <div style="font-size:2.2rem;margin-bottom:8px" aria-hidden="true">🏆</div>
+      <h2>Puzzle Complete!</h2>
+      <p id="wP"></p>
+      <div class="mbs">
+        <button class="bp" onclick="newGame(Game.difficulty)"
+          title="Start a new puzzle at the same difficulty level">
+          Play Again
+        </button>
+        <button class="bs" onclick="nextLevel()"
+          title="Advance to the next difficulty level">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── JavaScript modules ──────────────────────────────
+       Loaded in dependency order:
+         engine.js  — pure puzzle logic, no DOM
+         hints.js   — technique detection, needs Engine
+         render.js  — DOM drawing, needs Game + Engine
+         game.js    — state + controls, needs all three
+                      calls newGame('easy') at the bottom
+  ─────────────────────────────────────────────────────── -->
+  <script src="engine.js"></script>   <!-- no dependencies -->
+  <script src="hints.js"></script>    <!-- needs Engine     -->
+  <script src="render.js"></script>   <!-- needs Game state -->
+  <script src="game.js"></script>     <!-- needs all three  -->
+
+</body>
+</html>
