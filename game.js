@@ -20,6 +20,7 @@ const Game = {
   tab: 'tutor', lessonIdx: 0,
   difficulty: 'easy', mistakes: 0, score: 0, seconds: 0, streak: 0,
   hint: null, conflicts: [], message: null, techUsed: {},
+  soundOn: true,   /* mirrors Sound.enabled — readable by render.js without load-order dependency */
   history: [], timer: null, wrongTimer: null, done: false
 };
 
@@ -194,7 +195,7 @@ function playSound(name) {
   if (Sound.enabled && SOUNDS[name]) tone(SOUNDS[name]);
 }
 
-function toggleSound() { Sound.enabled = !Sound.enabled; Render.all(); }
+function toggleSound() { Sound.enabled = !Sound.enabled; Game.soundOn = Sound.enabled; Render.all(); }
 
 /* ═══ TIMER ════════════════════════════════════ */
 function startTimer() {
