@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Sudoku Tutor</title>
+
+  <!--
+    ══════════════════════════════════════════════════════
+    SUDOKU TUTOR  (v2 — improved)
+    ══════════════════════════════════════════════════════
+    A teaching-first Sudoku app that explains WHY a number
+    goes where it does, not just what the answer is.
+
+    FILE STRUCTURE
+    ──────────────
+    index.html  ← this file — HTML skeleton & page structure
+    style.css   ← all visual styling, colours, animations
+    engine.js   ← puzzle generation & solving logic (pure JS)
+    hints.js    ← technique detection & explanations
+    render.js   ← reads Game state, writes to the DOM
+    game.js     ← state object, all user actions, keyboard
+
+    LOAD ORDER: engine → hints → render → game
+    Each file depends only on those before it.
+
+    KEY FEATURES
+    ────────────
+    • 5 difficulty levels (Beginner → Expert)
+    • Tutor tab: real-time hints with step-by-step explanations
+    • Lessons tab: structured learning path
+    • Techniques tab: reference library (Naked Single → X-Wing)
+    • Pencil notes with auto-fill and auto-clear
+    • Score + streak bonuses + animated feedback
+    • Undo, pause, check mode, sound
+    • Keyboard: 1-9 place, Backspace erase, N notes, P pause,
+                Ctrl+Z undo, Arrow keys navigate
+    ══════════════════════════════════════════════════════
+  -->
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body style="padding-top:40px;">
+
+  <!-- ── Ecosystem nav ───────────────────────────────────
+       Links to all three tools. Consistent across ecosystem.
+  ─────────────────────────────────────────────────────── -->
+  <div id="ecoNav" style="
+    position:fixed; top:0; left:0; right:0; z-index:300;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:0 20px; height:40px;
+    background:#09080698;
+    -webkit-backdrop-filter:blur(12px);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid #2a261a66;
+    font-family:'Georgia',serif;
+  ">
+    <a href="https://fjcinsa.github.io/sudoku-mastery/" style="
+      color:#c8a96e; font-size:.62rem; letter-spacing:.12em;
+      text-transform:uppercase; text-decoration:none; font-family:Georgia,serif;
+    ">Sudoku Mastery</a>
+    <div style="display:flex; gap:18px; align-items:center;">
+      <a href="https://fjcinsa.github.io/sudoku-mastery/" style="
+        color:#7a6e58; font-size:.58rem; letter-spacing:.12em;
+        text-transform:uppercase; text-decoration:none;
+      ">Course</a>
+      <a href="https://fjcinsa.github.io/sudoku-helper/" style="
+        color:#7a6e58; font-size:.58rem; letter-spacing:.12em;
+        text-transform:uppercase; text-decoration:none;
+      ">Helper</a>
+      <a href="https://fjcinsa.github.io/sudoku-mastery/course.html" style="
+        color:#c8a96e; font-size:.58rem; letter-spacing:.12em;
+        text-transform:uppercase; text-decoration:none;
+        border:1px solid #c8a96e66; padding:3px 10px; border-radius:3px;
+      ">Learn Free</a>
+    </div>
+  </div>
+
+  <!-- ── Loading overlay ─────────────────────────────────
+       Shown for ~200 ms while the first puzzle generates.
+       Prevents the UI from looking frozen on load.
+  ─────────────────────────────────────────────────────── -->
+  <div id="loadOverlay" class="show" aria-live="polite">
+    <span>Generating puzzle…</span>
+  </div>
+
+  <!-- ── App header ──────────────────────────────────────
+       Title + tagline.  Georgia serif to match the board.
+  ─────────────────────────────────────────────────────── -->
+  <h1>Sudoku Tutor</h1>
+  <div class="sub" title="Learn solving techniques while you play">Learn · Solve · Master</div>
+  <div style="margin-top:6px;">
+    <a href="https://fjcinsa.github.io/sudoku-mastery/" target="_blank" class="learn-link">
+      📖 Learn the techniques →
+    </a>
+  </div>
+
+  <!-- ── Difficulty selector ─────────────────────────────
+       Five buttons: Beginner / Easy / Medium / Hard / Expert.
+       Clicking any button starts a fresh puzzle.
+       Built by Render.difficulty() on every Render.all().
+  ─────────────────────────────────────────────────────── -->
+  <div class="dbar" id="dB" role="group" aria-label="Difficulty selector"></div>
+
+  <!-- ── Stats bar ───────────────────────────────────────
+       ❌ mistakes  ⚡ score  🔥 streak  ⏱ time elapsed
+       Updated every second; each span has a tooltip.
+  ─────────────────────────────────────────────────────── -->
+  <div class="info" role="status" aria-label="Game stats">
+    <span id="xM" title="Number of mistakes (each costs 15 points)">❌ 0</span>
+    <span id="xS" title="Score (+10 per correct digit, +25 for 5+ streak)">⚡ 0</span>
+    <span id="xK" title="Current correct-placement streak"></span>
+    <span id="xT" title="Time elapsed">00:00</span>
+  </div>
+
+  <!-- ── Progress bar ────────────────────────────────────
+       Gold fill advances left-to-right as cells are solved.
+       Width is set via JS; glows briefly after each correct cell.
+  ─────────────────────────────────────────────────────── -->
+  <div class="pbar" role="progressbar" aria-label="Puzzle completion"
+       aria-valuemin="0" aria-valuemax="100">
+    <div class="pf" id="pF" style="width:0%"
+         title="Puzzle completion percentage"></div>
+  </div>
+
+  <!-- ── 9×9 board ───────────────────────────────────────
+       81 cells built dynamically by Render.board().
+       data-r / data-c attributes identify each cell's position.
+       Clicking a cell calls selectCell(r, c).
+  ─────────────────────────────────────────────────────── -->
+  <div class="board" id="brd" role="grid" aria-label="Sudoku board"></div>
+
+  <!-- ── Action buttons ──────────────────────────────────
+       Built by Render.actions().  Buttons:
+         ✏ Notes   — toggle pencil-note mode (blue border)
+         ✕ Erase   — clear selected cell
+         ↩ Undo    — reverse last action
+         📝 Auto   — fill all candidates as notes
+         ✓ Check   — toggle instant error feedback
+         🔊/🔇    — toggle sound
+         ⏸/▶     — pause / resume
+       Each button has a tooltip (title attribute).
+  ─────────────────────────────────────────────────────── -->
+  <div class="acts" id="act" role="toolbar" aria-label="Game actions"></div>
+
+  <!-- ── Number pad ──────────────────────────────────────
+       9 buttons (1-9), built by Render.numpad().
+       Each shows the digit and a small "placed/9" counter.
+       Button is greyed out when all 9 of that digit are placed.
+  ─────────────────────────────────────────────────────── -->
+  <div class="np" id="nup" role="toolbar" aria-label="Number pad"></div>
+
+  <!-- ── Teaching panel ──────────────────────────────────
+       Tabbed area below the number pad.
+
+       💡 Tutor tab
+          Context-sensitive messages appear here whenever you:
+          • tap a cell (shows candidate count or hint)
+          • make a correct or wrong placement
+          • use Show Move (shows technique + explanation)
+          Buttons: "Show Move" (highlight next move) and
+                   "Place N"   (apply hint automatically)
+
+       📖 Lessons tab
+          Structured learning path — five expandable cards:
+          The Rules → Scanning → Naked Singles →
+          Hidden Singles → Notes Mastery
+
+       🧩 Techniques tab
+          Reference accordion for five solving strategies:
+          Naked Single → Hidden Single → Naked Pair →
+          Pointing Pair → X-Wing
+          Each entry has: description, how-to, example.
+  ─────────────────────────────────────────────────────── -->
+  <div class="pn" role="complementary" aria-label="Teaching panel">
+    <div class="tbs" id="tbs" role="tablist"></div>
+    <div class="tbd" id="tbd" role="tabpanel"></div>
+  </div>
+
+  <!-- ── Win modal ───────────────────────────────────────
+       Full-screen overlay, shown when all 81 cells are correct.
+       Displays: time, score, mistakes.
+       Buttons: "Play Again" (same difficulty) / "Next →" (harder).
+  ─────────────────────────────────────────────────────── -->
+  <div class="mo" id="wM" role="dialog" aria-modal="true" aria-label="Puzzle complete">
+    <div class="mi2">
+      <div style="font-size:2.2rem;margin-bottom:8px" aria-hidden="true">🏆</div>
+      <h2>Puzzle Complete!</h2>
+      <p id="wP"></p>
+      <div class="mbs">
+        <button class="bp" onclick="newGame(Game.difficulty)"
+          title="Start a new puzzle at the same difficulty level">
+          Play Again
+        </button>
+        <button class="bs" onclick="nextLevel()"
+          title="Advance to the next difficulty level">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── JavaScript modules ──────────────────────────────
+       Loaded in dependency order:
+         engine.js  — pure puzzle logic, no DOM
+         hints.js   — technique detection, needs Engine
+         render.js  — DOM drawing, needs Game + Engine
+         game.js    — state + controls, needs all three
+                      calls newGame('easy') at the bottom
+  ─────────────────────────────────────────────────────── -->
+  <script src="engine.js"></script>   <!-- no dependencies -->
+  <script src="hints.js"></script>    <!-- needs Engine     -->
+  <script src="render.js"></script>   <!-- needs Game state -->
+  <script src="game.js"></script>     <!-- needs all three  -->
+
+  <!-- ── Strike Banner ───────────────────────────────────
+       Watches the mistake counter. After 3 mistakes the
+       banner slides up from the bottom, linking to the
+       Sudoku Mastery course. Dismissible. Resets on new game.
+  ─────────────────────────────────────────────────────── -->
+  <div id="strikeBanner" class="sb" role="alert" aria-live="polite">
+    <div class="sb-inner">
+      <button class="sb-close" onclick="dismissBanner()" aria-label="Dismiss">✕</button>
+      <div class="sb-icon">💡</div>
+      <div class="sb-title">Everyone gets stuck.</div>
+      <div class="sb-text">The course shows you exactly why — and fixes it in six chapters.</div>
+      <div class="sb-meta">Free · No signup required</div>
+      <a class="sb-btn" href="https://fjcinsa.github.io/sudoku-mastery/course.html"
+         target="_blank" rel="noopener">Open the Course →</a>
+    </div>
+  </div>
+
+  <style>
+  .sb {
+    display:none; position:fixed; bottom:0; left:0; right:0; z-index:200;
+    padding:14px 20px;
+    background:#161410ee;
+    border-top:2px solid #c8a96e;
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+  }
+  .sb.show { display:block; animation:sbUp .35s ease; }
+  @keyframes sbUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .sb-inner {
+    max-width:480px; margin:0 auto; text-align:center; position:relative;
+    padding:4px 32px 0;
+  }
+  .sb-close {
+    position:absolute; right:-8px; top:-4px;
+    background:none; border:none; cursor:pointer;
+    color:#6b5f48; font-size:.9rem; padding:4px 8px; line-height:1;
+    transition:color .15s;
+  }
+  .sb-close:hover { color:#e8dcc8; }
+  .sb-icon { font-size:1.3rem; margin-bottom:3px; }
+  .sb-title {
+    font-family:'Georgia',serif; font-size:.97rem;
+    color:#e2c070; margin-bottom:3px; font-weight:600;
+  }
+  .sb-text {
+    font-size:.8rem; color:#b8a880; line-height:1.5; margin-bottom:3px;
+  }
+  .sb-meta {
+    font-size:.65rem; color:#6b5f48; margin-bottom:10px;
+    letter-spacing:.1em; text-transform:uppercase;
+  }
+  .sb-btn {
+    display:inline-block; padding:8px 22px;
+    background:#c8a96e; border-radius:3px;
+    color:#090806; font-weight:600; text-decoration:none;
+    font-size:.8rem; transition:background .2s;
+  }
+  .sb-btn:hover { background:#e2c070; }
+  .learn-link {
+    font-family:Georgia,serif; font-size:.68rem; letter-spacing:.15em;
+    text-transform:uppercase; color:#6b5f4a; text-decoration:none;
+    border-bottom:1px solid #3a3228; padding-bottom:1px; transition:color .2s;
+  }
+  .learn-link:hover { color:#c8a96e; }
+  </style>
+
+  <script>
+  (function() {
+    var shown = false;
+    var banner = document.getElementById('strikeBanner');
+    var target = document.getElementById('xM');
+    if (!target || !banner) return;
+
+    // Single observer handles both trigger (≥3) and reset (back to 0)
+    new MutationObserver(function() {
+      var n = parseInt((target.textContent || '').replace(/[^0-9]/g, ''), 10);
+      if (isNaN(n)) return;
+      if (n >= 3 && !shown) {
+        shown = true;
+        banner.classList.add('show');
+      } else if (n === 0 && shown) {
+        shown = false;
+        banner.classList.remove('show');
+      }
+    }).observe(target, { childList:true, subtree:true, characterData:true });
+  })();
+
+  function dismissBanner() {
+    document.getElementById('strikeBanner').classList.remove('show');
+  }
+  </script>
+
+  <!-- ── Floating Feedback Widget ────────────────────────── -->
+  <div id="fbBtn" onclick="toggleFeedback()" style="
+    position:fixed; bottom:20px; right:20px; z-index:400;
+    width:48px; height:48px; border-radius:50%;
+    background:#c8a96e; color:#090806;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.3rem; cursor:pointer;
+    box-shadow:0 4px 16px #00000060;
+    transition:transform .2s, background .2s;
+  " title="Give feedback">★</div>
+
+  <div id="fbPanel" style="
+    display:none; position:fixed; bottom:76px; right:20px; z-index:400;
+    width:260px; background:#111009; border:1px solid #2e2a1e;
+    border-radius:8px; padding:20px;
+    box-shadow:0 8px 32px #00000080;
+    font-family:Georgia,serif;
+  ">
+    <div style="font-size:.62rem; letter-spacing:.2em; text-transform:uppercase;
+      color:#6b5f48; margin-bottom:14px;">Rate Sudoku Tutor</div>
+
+    <div id="fbStars" style="display:flex; gap:6px; margin-bottom:14px;">
+      <span onclick="setRating(1)" data-v="1" style="font-size:1.8rem; color:#2a261a; cursor:pointer; transition:color .15s; user-select:none;">★</span>
+      <span onclick="setRating(2)" data-v="2" style="font-size:1.8rem; color:#2a261a; cursor:pointer; transition:color .15s; user-select:none;">★</span>
+      <span onclick="setRating(3)" data-v="3" style="font-size:1.8rem; color:#2a261a; cursor:pointer; transition:color .15s; user-select:none;">★</span>
+      <span onclick="setRating(4)" data-v="4" style="font-size:1.8rem; color:#2a261a; cursor:pointer; transition:color .15s; user-select:none;">★</span>
+      <span onclick="setRating(5)" data-v="5" style="font-size:1.8rem; color:#2a261a; cursor:pointer; transition:color .15s; user-select:none;">★</span>
+    </div>
+
+    <textarea id="fbText" placeholder="Any suggestions? (optional)" rows="3" style="
+      width:100%; padding:10px 12px; margin-bottom:10px;
+      background:#090806; border:1px solid #2a261a;
+      border-radius:3px; color:#ede0c8;
+      font-family:Georgia,serif; font-size:.82rem;
+      resize:none; outline:none; line-height:1.5;
+    "></textarea>
+
+    <button onclick="submitFeedbackTutor()" style="
+      width:100%; padding:10px;
+      background:#c8a96e; color:#090806;
+      border:none; border-radius:3px; cursor:pointer;
+      font-family:Georgia,serif; font-size:.82rem; font-weight:600;
+      transition:background .2s;
+    ">Send Feedback →</button>
+
+    <div id="fbThanks" style="
+      display:none; margin-top:10px; font-size:.78rem;
+      color:#5a9a5a; font-family:Georgia,serif; text-align:center;
+    ">✓ Thanks — your feedback helps improve the tool</div>
+  </div>
+
+  <script>
+  var fbRating = 0;
+
+  function toggleFeedback() {
+    var p = document.getElementById('fbPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function setRating(val) {
+    fbRating = val;
+    document.querySelectorAll('#fbStars span').forEach(function(s) {
+      s.style.color = parseInt(s.dataset.v) <= val ? '#c8a96e' : '#2a261a';
+    });
+  }
+
+  function submitFeedbackTutor() {
+    var suggestion = document.getElementById('fbText').value.trim();
+    var thanks = document.getElementById('fbThanks');
+    if (!fbRating && !suggestion) {
+      thanks.textContent = 'Please select a star rating first.';
+      thanks.style.color = '#c8732a';
+      thanks.style.display = 'block';
+      return;
+    }
+    thanks.textContent = '✓ Thanks — your feedback helps improve the tool';
+    thanks.style.color = '#5a9a5a';
+    thanks.style.display = 'block';
+    document.querySelector('#fbPanel button').style.display = 'none';
+    var stars = '★'.repeat(fbRating) + '☆'.repeat(5 - fbRating);
+    var body = 'Tool: Sudoku Tutor\nRating: ' + stars + ' (' + fbRating + '/5)\n\nSuggestion: ' + (suggestion || 'None');
+    window.location.href = 'mailto:sudokumasterycourse@gmail.com?subject=Sudoku Tutor Feedback&body=' + encodeURIComponent(body);
+  }
+  </script>
+
+
+<!-- ── QR Code Footer ─────────────────────────────── -->
+<div id="qrFooter" style="
+  border-top:1px solid #2a261a;
+  padding:32px clamp(20px,5vw,64px);
+  background:#090806;
+  text-align:center;
+">
+  <div style="font-family:'JetBrains Mono',monospace; font-size:.58rem;
+    letter-spacing:.22em; text-transform:uppercase; color:#4a4030;
+    margin-bottom:24px;">Share these tools</div>
+  <div style="display:flex; justify-content:center; gap:40px; flex-wrap:wrap;">
+
+    <div style="text-align:center;">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAIAAAAG+WgKAAAEHUlEQVR4nO3dTYpcNxhA0TgEYy/LK8k0S8rUK/HWMo/AFuLqp805Q+Pqqu66CD703tOnr18+/wGdP29/AH43kiImKWKSIiYpYpIiJilikiImKWKSIiYpYn/N/Kcf3//Z/Tl+4tvf//7vX2Y+z8yr1v7PmurdX/suRlYpYpIiJilikiImKWJTE9+omoNG1TQ386q1n7xvClv7q979LkZWKWKSIiYpYpIiJiliixPfaG06WJtW9u3W3d1Bq3YYT34XI6sUMUkRkxQxSRGTFLFs4jtp35x412ufZ41VipikiEmKmKSISYrYh5z4Rnd39N7fPTzJKkVMUsQkRUxSxCRFLJv4Tu5PVffWVZPazOdZe6/X7uybYZUiJilikiImKWKSIrY48X3EHauTT+YcnXwK6F1WKWKSIiYpYpIiJiliUxPfa/eXre3o7Zu5Tv59XvsuRlYpYpIiJilikiImKWKfvn75/Mv/dPIku5NXY772CU8+kWbfd2qVIiYpYpIiJilikiK2OPGN9t1JN+P9ayb3nSM/86oZ1U+2ShGTFDFJEZMUMUkRO/qszpNTz8l9ydeu6qzO43MCO0+QFDFJEZMUMUkRm9rjm3HypIMZd69Efe29RvumVKsUMUkRkxQxSRGTFLGNe3x39+buPplzzb478k5+HqsUMUkRkxQxSRGTFLGpie/kvWx377+rftNqJ+7kyQvVe1mliEmKmKSISYqYpIgt7vG9v38347UrUe++u/v4eJSkiEmKmKSISYpYdh/fqJrv7t6Vtu+3qCas165NtUoRkxQxSRGTFDFJEcuu6pzZiZt51d1T6vapftPxVe7j4zcnKWKSIiYpYpIiNjXxVbtR+95rbd6szoao3uvklLrvG7RKEZMUMUkRkxQxSRE7+uSWtffa98yT166H3DdZ75tSR1YpYpIiJilikiImKWJHz+O7e7Xhvh29fefxvXZewwyrFDFJEZMUMUkRkxSxqYlv3xNFqp9cTXNr7p4osWbfHZRWKWKSIiYpYpIiJiliG5/VuU+1n7hvTjy5DzjaN0d7cgsXSIqYpIhJipikiD13H9+oeubn2k+ecfdk+bW/zz5WKWKSIiYpYpIiJili2QnslZP7bjPvvvabvn8F6chVnTxKUsQkRUxSxCRFbHHiG909Pfy18yNmTouonjg64+SzXKxSxCRFTFLEJEVMUsSyie+uk6cP3H2+yozq7D/38fEESRGTFDFJEZMUsQ858VVn9lX27frtu8p0VP3FrFLEJEVMUsQkRUxSxLKJ7+SzQapnlex7NuZrd9utTaBrrFLEJEVMUsQkRUxSxBYnvrtP79w39dw912/GycnaVZ08QVLEJEVMUsQkRexDnsfHy6xSxCRFTFLEJEVMUsQkRUxSxCRFTFLEJEVMUsT+A4UzCJXHVHCyAAAAAElFTkSuQmCC" 
+        width="80" height="80" alt="Sudoku Mastery QR code"
+        style="border-radius:4px; display:block; margin:0 auto 8px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:.55rem;
+        letter-spacing:.12em; text-transform:uppercase; color:#6b5f48;">
+        Mastery
+      </div>
+    </div>
+
+    <div style="text-align:center;">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAIAAAAG+WgKAAAEJElEQVR4nO3dQYodNxRA0TgEYy8rK8nUS/I0K8nWsoCCWIj7pOrOOePu72/6InhIVfry/dvX36Dz++0vwGcjKWKSIiYpYpIiJilikiImKWKSIiYpYpIi9sfKD/3z94/p7/Ef/vzr5y9/pvqGz3/r+ckr3+dp5XP2fuaklf+7VYqYpIhJipikiEmK2NLE97Q39axYmWhWfqaay/bszYl73/nu3+LJKkVMUsQkRUxSxCRFbHPie9qbDqppZW8v7PlbK5+z98lzU+rT3b+FVYqYpIhJipikiEmKWDbx3bW3p3Zyr3Dv+8zt382xShGTFDFJEZMUMUkR+5ATX/V0WzWFVSdRPwerFDFJEZMUMUkRkxSxbOK7uxs193aX6tm6k29lufu3sEoRkxQxSRGTFDFJEduc+O7uWM2993LuXZ1z3rZ7aJUiJilikiImKWKSIrY08b1txnmam93m3i1z93PmWKWISYqYpIhJipikiH35/u3rL3/o5D7X3X23ubOXd8+dnjzRapUiJilikiImKWKSIrY08T19jrOOc9PcyQnrbbdFWKWISYqYpIhJipikiC2d6py7l3xPdRrz5BNwd+/ae5qb0K1SxCRFTFLEJEVMUsQ2n+M7OXfs3YG+8m/N3c5wcsfzbTf9WaWISYqYpIhJipikiL3uPr6Tz+hVn3N3clz5rZP3yFuliEmKmKSISYqYpIhtPsf3VL3zZG4H7e4zendVZ1xNfFwgKWKSIiYpYpIitvmuzqe7d46vuPtk39wu29ysvccqRUxSxCRFTFLEJEUsu49vZaaY261bmXGqf/1tbyWdmwGd6uQVJEVMUsQkRUxSxI7u8e25ezr0/b+1wh4fH5ikiEmKmKSISYpYNvE9vW0vrJp6Tj5X+BFvDLRKEZMUMUkRkxQxSRHL3tV58hm96jRmde/DirfNd3NPNVqliEmKmKSISYqYpIht7vG97aRlpXombu405tt2Tp+sUsQkRUxSxCRFTFLEBu/je9v0NLcz+DT3nlKnOvnfkRQxSRGTFDFJEcvu4zvp5G0RH3FH7+R7Wp6sUsQkRUxSxCRFTFLElvb47t45/pxNTj4zOHeLQbXHN3fDxR6rFDFJEZMUMUkRkxSxzVOdcztEJ08tnnz2sDJ3h2C1M2iVIiYpYpIiJilikiKWPcd39waHuRObT3fPeVafM7dzapUiJilikiImKWKSIjb45paT3nbOs/qtucnRqU4+DEkRkxQxSRGTFLFPMvFVT9LNTY5ze46Vaga0ShGTFDFJEZMUMUkRG7yB/aTqObW5d3VW89TJt3fufWerFDFJEZMUMUkRkxSxzYnv7ts7T97Zd3L3cO4Nn9UTiyusUsQkRUxSxCRFTFLEPuR9fLyZVYqYpIhJipikiEmKmKSISYqYpIhJipikiEmK2L9ZQQzJHdri0gAAAABJRU5ErkJggg=="
+        width="80" height="80" alt="Sudoku Tutor QR code"
+        style="border-radius:4px; display:block; margin:0 auto 8px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:.55rem;
+        letter-spacing:.12em; text-transform:uppercase; color:#6b5f48;">
+        Tutor
+      </div>
+    </div>
+
+    <div style="text-align:center;">
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAIAAAAG+WgKAAAEDUlEQVR4nO3dQWolNxRA0XRoQrKsrCTTXlKmWUm2lnkKGiHuk8qfc4bmu1y2LwKhKunbH7//9gt0fr19A3waSRGTFDFJEZMUMUkRkxQxSRGTFDFJEZMUse8rH/r3nx/T9/ETf/719/++8ryf52ee9n6LlSuvWLnnvc+ctPLXMEoRkxQxSRGTFDFJEVua8T1V86CnakYzd5292eXc3O1t/wujFDFJEZMUMUkRkxSxzRnf090VtL2ftXLPeytx1brknrv/C6MUMUkRkxQxSRGTFLFsxnfS3txtbt1tb+a4cp2TM+KKUYqYpIhJipikiEmK2Jec8c3N3ap366r1xK/IKEVMUsQkRUxSxCRFLJvxvf/5zDknnxfdu5+TjFLEJEVMUsQkRUxSxDZnfHdnWHPrbntzpbt7bN79XzwZpYhJipikiEmKmKSIffuME9jvzgFPftf7GaWISYqYpIhJipikiC3N+E6ef7dn7r25uTMU5nbUPPme45NRipikiEmKmKSISYrY4FOdJ88uX3HynIXnZ+b+YnMz6737MUoRkxQxSRGTFDFJEctOYK/mOHPnI1SfWXHyfcCT63crjFLEJEVMUsQkRUxSxDaf6lxx8vnD9594fvKn330/0ShFTFLEJEVMUsQkRWxpje/kfOrkvpdzc6W75/qt3M8coxQxSRGTFDFJEZMUsc29Ok+uu83twXJ3/5m37X6zwhofF0iKmKSISYqYpIgtrfFVc6655zzvPld59zTAlft5mltPNEoRkxQxSRGTFDFJEdvcueXp5Bt5e9+1d51qX9C9z+x9192T/oxSxCRFTFLEJEVMUsSyGd/JUwz2zO2fOWdutW5uTmqUIiYpYpIiJilikiI2uFfnnpPnGuzdz8nr3P1rmPHxCpIiJilikiImKWIfssY3t2JV/fSTpxM6nYGPIilikiImKWKSIpat8Z3cLfPuSRAn9yB9qlb9qis/GaWISYqYpIhJipikiB09gf39u7vsuTsHnOOpTl5BUsQkRUxSxCRFbPM8vrtO7qZycnWs+r3unlVhlCImKWKSIiYpYpIilp3HN+f9z4ueXGG8u3foCqMUMUkRkxQxSRGTFLHNnVvurqlV13nbXGnF3Cl+T3Zu4RUkRUxSxCRFTFLEBk9gX/G2OVe1Wjf3nGd1nbnfwihFTFLEJEVMUsQkRSyb8d01d67B06c+jVnNAY1SxCRFTFLEJEVMUsS+5Izv5N6Y1Ul/bztLfe7dTKMUMUkRkxQxSRGTFLHBE9jf5u7+M3NrfG87/90oRUxSxCRFTFLEJEVsc8b3ttnTnmq9bO5nPZ18I897fLyCpIhJipikiEmK2Jc8j483M0oRkxQxSRGTFDFJEZMUMUkRkxQxSRGTFDFJEfsP/QgXqW1xMosAAAAASUVORK5CYII="
+        width="80" height="80" alt="Sudoku Helper QR code"
+        style="border-radius:4px; display:block; margin:0 auto 8px;">
+      <div style="font-family:'JetBrains Mono',monospace; font-size:.55rem;
+        letter-spacing:.12em; text-transform:uppercase; color:#6b5f48;">
+        Helper
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>
