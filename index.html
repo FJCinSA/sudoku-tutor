@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Sudoku Tutor — FJCinSA</title>
+  <title>SudokuLab · Tutor — FJCinSA</title>
 
   <!--
     ══════════════════════════════════════════════════════
@@ -88,7 +88,7 @@
   <!-- ── App header ──────────────────────────────────────
        Title + tagline.  Georgia serif to match the board.
   ─────────────────────────────────────────────────────── -->
-  <h1>Sudoku Tutor</h1>
+  <h1>SudokuLab · Tutor</h1>
   <div class="sub" title="Learn solving techniques while you play">Learn · Solve · Master</div>
   <div style="margin-top:6px;">
     <a href="https://fjcinsa.github.io/sudoku-mastery/" target="_blank" class="learn-link">
@@ -340,7 +340,7 @@
 
     <div style="text-align:center;">
       <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMYAAADGCAIAAAAG+WgKAAAEJElEQVR4nO3dQYodNxRA0TgEYy8rK8nUS/I0K8nWsoCCWIj7pOrOOePu72/6InhIVfry/dvX36Dz++0vwGcjKWKSIiYpYpIiJilikiImKWKSIiYpYpIi9sfKD/3z94/p7/Ef/vzr5y9/pvqGz3/r+ckr3+dp5XP2fuaklf+7VYqYpIhJipikiEmK2NLE97Q39axYmWhWfqaay/bszYl73/nu3+LJKkVMUsQkRUxSxCRFbHPie9qbDqppZW8v7PlbK5+z98lzU+rT3b+FVYqYpIhJipikiEmKWDbx3bW3p3Zyr3Dv+8zt382xShGTFDFJEZMUMUkR+5ATX/V0WzWFVSdRPwerFDFJEZMUMUkRkxSxbOK7uxs193aX6tm6k29lufu3sEoRkxQxSRGTFDFJEduc+O7uWM2993LuXZ1z3rZ7aJUiJilikiImKWKSIrY08b1txnmam93m3i1z93PmWKWISYqYpIhJipikiH35/u3rL3/o5D7X3X23ubOXd8+dnjzRapUiJilikiImKWKSIrY08T19jrOOc9PcyQnrbbdFWKWISYqYpIhJipikiC2d6py7l3xPdRrz5BNwd+/ae5qb0K1SxCRFTFLEJEVMUsQ2n+M7OXfs3YG+8m/N3c5wcsfzbTf9WaWISYqYpIhJipikiL3uPr6Tz+hVn3N3clz5rZP3yFuliEmKmKSISYqYpIhtPsf3VL3zZG4H7e4zendVZ1xNfFwgKWKSIiYpYpIitvmuzqe7d46vuPtk39wu29ysvccqRUxSxCRFTFLEJEUsu49vZaaY261bmXGqf/1tbyWdmwGd6uQVJEVMUsQkRUxSxI7u8e25ezr0/b+1wh4fH5ikiEmKmKSISYpYNvE9vW0vrJp6Tj5X+BFvDLRKEZMUMUkRkxQxSRHL3tV58hm96jRmde/DirfNd3NPNVqliEmKmKSISYqYpIht7vG97aRlpXombu405tt2Tp+sUsQkRUxSxCRFTFLEBu/je9v0NLcz+DT3nlKnOvnfkRQxSRGTFDFJEcvu4zvp5G0RH3FH7+R7Wp6sUsQkRUxSxCRFTFLElvb47t45/pxNTj4zOHeLQbXHN3fDxR6rFDFJEZMUMUkRkxSxzVOdcztEJ08tnnz2sDJ3h2C1M2iVIiYpYpIiJilikiKWPcd39waHuRObT3fPeVafM7dzapUiJilikiImKWKSIjb45paT3nbOs/qtucnRqU4+DEkRkxQxSRGTFLFPMvFVT9LNTY5ze46Vaga0ShGTFDFJEZMUMUkRG7yB/aTqObW5d3VW89TJt3fufWerFDFJEZMUMUkRkxSxzYnv7ts7T97Zd3L3cO4Nn9UTiyusUsQkRUxSxCRFTFLEPuR9fLyZVYqYpIhJipikiEmKmKSISYqYpIhJipikiEmK2L9ZQQzJHdri0gAAAABJRU5ErkJggg=="
-        width="60" height="60" alt="Sudoku Tutor"
+        width="60" height="60" alt="SudokuLab · Tutor"
         style="border-radius:3px; display:block; margin:0 auto 6px;">
       <div style="font-family:'JetBrains Mono',monospace; font-size:.5rem;
         letter-spacing:.1em; text-transform:uppercase; color:#6b5f48;">Tutor</div>
@@ -383,7 +383,7 @@ function toggleQR() {
     font-family:Georgia,serif;
   ">
     <div style="font-size:.62rem; letter-spacing:.2em; text-transform:uppercase;
-      color:#6b5f48; margin-bottom:14px;">Rate Sudoku Tutor</div>
+      color:#6b5f48; margin-bottom:14px;">Rate SudokuLab · Tutor</div>
 
     <div id="fbStars" style="display:flex; gap:6px; margin-bottom:14px;">
       <span onclick="setRating(1)" data-v="1" style="font-size:1.8rem; color:#2a261a; cursor:pointer; transition:color .15s; user-select:none;">★</span>
@@ -444,8 +444,8 @@ function toggleQR() {
     thanks.style.display = 'block';
     document.querySelector('#fbPanel button').style.display = 'none';
     var stars = '★'.repeat(fbRating) + '☆'.repeat(5 - fbRating);
-    var body = 'Tool: Sudoku Tutor\nRating: ' + stars + ' (' + fbRating + '/5)\n\nSuggestion: ' + (suggestion || 'None');
-    window.location.href = 'mailto:sudokumasterycourse@gmail.com?subject=Sudoku Tutor Feedback&body=' + encodeURIComponent(body);
+    var body = 'Tool: SudokuLab · Tutor\nRating: ' + stars + ' (' + fbRating + '/5)\n\nSuggestion: ' + (suggestion || 'None');
+    window.location.href = 'mailto:sudokumasterycourse@gmail.com?subject=SudokuLab · Tutor Feedback&body=' + encodeURIComponent(body);
   }
   </script>
 
