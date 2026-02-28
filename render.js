@@ -220,7 +220,9 @@ const Render = (function () {
       { l: soundOn  ? '🔊 Sound'    : '🔇 Mute',     on: soundOn,   f: 'toggleSound()',
         tip: soundOn  ? 'Sound ON — click to mute.' : 'Sound OFF — click to enable.' },
       { l: paused   ? '▶ Resume'    : '⏸ Pause',     on: paused,    f: 'togglePause()',
-        tip: paused   ? 'Resume the game. (Keyboard: P)' : 'Pause and hide the board. (Keyboard: P)' }
+        tip: paused   ? 'Resume the game. (Keyboard: P)' : 'Pause and hide the board. (Keyboard: P)' },
+      { l: Game.strictMode ? '⚡ Strict' : '☁ Relaxed', on: Game.strictMode, f: 'toggleStrict()',
+        tip: Game.strictMode ? 'Strict mode: banner appears after 3 mistakes. Click for relaxed play.' : 'Relaxed mode: no interruptions. Click for strict mode.' }
     ];
 
     $('act').innerHTML = btns.map(b =>
