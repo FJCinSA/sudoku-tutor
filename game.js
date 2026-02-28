@@ -18,7 +18,7 @@ const Game = {
   puzzle: null, solution: null, board: null, notes: null,
   selected: null, noteMode: false, checkOn: true, paused: false,
   tab: 'tutor', lessonIdx: 0,
-  difficulty: 'easy', mistakes: 0, score: 0, seconds: 0, streak: 0,
+  difficulty: 'easy', mistakes: 0, score: 0, seconds: 0, streak: 0, strictMode: true,
   hint: null, conflicts: [], message: null, techUsed: {},
   soundOn: true,   /* mirrors Sound.enabled — readable by render.js without load-order dependency */
   history: [], timer: null, wrongTimer: null, done: false
@@ -229,7 +229,7 @@ function newGame(difficulty) {
 
     Object.assign(Game, {
       selected:null, noteMode:false, mistakes:0, score:0,
-      seconds:0, done:false, history:[], hint:null,
+      seconds:0, done:false, history:[], hint:null, strictMode: Game.strictMode,
       conflicts:[], techUsed:{}, streak:0, paused:false
     });
 
@@ -496,3 +496,14 @@ document.addEventListener('keydown', e => {
 
 /* ═══ START ═════════════════════════════════════ */
 newGame('easy');
+
+function toggleStrict() {
+  Game.strictMode = !Game.strictMode;
+  // If switching to relaxed, hide any visible banner
+  if (!Game.strictMode) {
+    const banner = document.getElementById('strikeBanner');
+    if (banner) banner.classList.remove('show');
+  }
+  Render.actions();
+}
+
