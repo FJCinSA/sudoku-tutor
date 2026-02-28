@@ -298,7 +298,8 @@
     new MutationObserver(function() {
       var n = parseInt((target.textContent || '').replace(/[^0-9]/g, ''), 10);
       if (isNaN(n)) return;
-      if (n >= 3 && !shown) {
+      var strict = (typeof Game !== 'undefined') ? Game.strictMode : true;
+      if (n >= 3 && !shown && strict) {
         shown = true;
         banner.classList.add('show');
       } else if (n === 0 && shown) {
