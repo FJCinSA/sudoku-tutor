@@ -45,6 +45,7 @@
   <meta property="og:url" content="https://fjcinsa.github.io/sudoku-tutor/">
   <meta property="og:type" content="website">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9822;</text></svg>">
+  <link rel="manifest" href="manifest.json">
 </head>
 
 <body style="padding-top:40px;">
@@ -457,5 +458,15 @@ function toggleQR() {
   }
   </script>
 
+
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sudoku-tutor/sw.js')
+        .then(() => console.log('SudokuLab: offline ready'))
+        .catch(e => console.log('SW error:', e));
+    });
+  }
+  </script>
 </body>
 </html>
