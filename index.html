@@ -47,6 +47,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#9822;</text></svg>">
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 </head>
 
@@ -219,10 +220,10 @@
          game.js    — state + controls, needs all three
                       calls newGame('easy') at the bottom
   ─────────────────────────────────────────────────────── -->
-  <script src="engine.js"></script>   <!-- no dependencies -->
-  <script src="hints.js"></script>    <!-- needs Engine     -->
-  <script src="render.js"></script>   <!-- needs Game state -->
-  <script src="game.js"></script>     <!-- needs all three  -->
+  <script src="engine.js" defer></script>   <!-- no dependencies -->
+  <script src="hints.js" defer></script>    <!-- needs Engine     -->
+  <script src="render.js" defer></script>   <!-- needs Game state -->
+  <script src="game.js" defer></script>     <!-- needs all three  -->
 
   <!-- ── Strike Banner ───────────────────────────────────
        Watches the mistake counter. After 3 mistakes the
