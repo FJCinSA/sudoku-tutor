@@ -1,0 +1,19 @@
+{
+  "name": "SudokuLab Tutor",
+  "short_name": "SudokuLab",
+  "description": "Play Sudoku offline with step-by-step technique guidance",
+  "start_url": "/sudoku-tutor/",
+  "scope": "/sudoku-tutor/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#090806",
+  "theme_color": "#090806",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23090806'/><text x='96' y='140' font-size='120' text-anchor='middle' fill='%23d4a050'>&#9822;</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
