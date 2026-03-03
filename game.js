@@ -479,6 +479,16 @@ function clearHint() {
   Render.all();
 }
 
+
+function toggleStrict() {
+  Game.strictMode = !Game.strictMode;
+  if (!Game.strictMode) {
+    const banner = document.getElementById('strikeBanner');
+    if (banner) banner.classList.remove('show');
+  }
+  Render.actions();
+}
+
 /* ═══ KEYBOARD ══════════════════════════════════ */
 document.addEventListener('keydown', e => {
   if (e.key==='p'||e.key==='P') { togglePause(); return; }
