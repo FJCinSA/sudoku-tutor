@@ -15,11 +15,6 @@ const Render = (function () {
 
   const $ = id => document.getElementById(id);
 
-  /* Time formatter — render.js needs this independently of game.js load order */
-  const fmt = s =>
-    String((s / 60) | 0).padStart(2, '0') + ':' +
-    String(s % 60).padStart(2, '0');
-
   /* ── Difficulty buttons ───────────────────────── */
   const DIFF_TIPS = {
     beginner: 'Beginner — 51 clues. Perfect for learning.',
