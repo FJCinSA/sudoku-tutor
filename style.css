@@ -576,13 +576,6 @@ h1 {
   box-shadow: 0 0 12px #d4a05030;
 }
 
-/* Note-mode ON: blue accent instead of gold */
-.ab.note-active {
-  border-color: var(--nb);
-  color: var(--nb);
-  background: var(--ng);
-}
-
 
 /* ─────────────────────────────────────────────
    13. NUMBER PAD
@@ -1063,13 +1056,6 @@ button:focus-visible,
 }
 
 /* Screen-reader only text */
-.sr-only {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap; border: 0;
-}
 
 /* ─────────────────────────────────────────────
    21. HINT HIGHLIGHTING
